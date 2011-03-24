@@ -194,17 +194,4 @@ PingMonitor.prototype.processResult = function (status, output) {
         m = m.replace(/\//, " ms");
         this.latencyCallback(m);
     }
-    /*if ((match = line.match(/time=/)) != null) { // good response
-        if (this.connstat == false || this.connstat == null) {
-            this.connstat = true;
-            this.connectedCallback();
-        }
-        line = line.replace(/^.*time=/, "");
-        this.latencyCallback(line);
-    } else { // bad response
-        if (this.connstat == true || this.connstat == null) {
-            this.connstat = false;
-            this.disconnectedCallback();
-        }
-    }*/
 }
