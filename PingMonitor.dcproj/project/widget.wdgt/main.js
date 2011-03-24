@@ -111,8 +111,7 @@ function hide()
 {
     // Stop monitor timers to prevent CPU usage
     if (monitorsRunning) {
-        ioMonitor.stop();
-        netMonitor.stop();
+        pingMonitor.stop();
         monitorsRunning = false;
     }
 }
@@ -125,8 +124,7 @@ function show()
 {
     // Restart any timers that were stopped on hide
     if (monitorsRunning === false) {
-        ioMonitor.start();
-        netMonitor.start();
+        pingMonitor.start();
         monitorsRunning = true;
     }
 }
@@ -145,6 +143,8 @@ function sync()
     // globalPreferenceValue = widget.preferenceForKey(null, "your-key");
 }
 
+var old_remote_addr;
+
 //
 // Function: showBack(event)
 // Called when the info button is clicked to show the back of the widget
@@ -153,6 +153,7 @@ function sync()
 //
 function showBack(event)
 {
+    old_remote_addr = getRemoteAddr();
     var front = document.getElementById("front");
     var back = document.getElementById("back");
 
@@ -170,7 +171,8 @@ function showBack(event)
 
 //
 // Function: showFront(event)
-// Called when the done button is clicked from the back of the widget
+// Called when the done button is clicked from the back of the widget.
+// This function also refreshes the ping if the remote address was changed.
 //
 // event: onClick event from the done button
 //
@@ -188,6 +190,11 @@ function showFront(event)
 
     if (window.widget) {
         setTimeout('widget.performTransition();', 0);
+    }
+    
+    if (old_remote_addr != getRemoteAddr()) {
+        pingMonitor.stop();
+        initMonitors();
     }
 }
 
