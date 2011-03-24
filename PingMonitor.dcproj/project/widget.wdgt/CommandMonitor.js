@@ -37,12 +37,9 @@ CommandMonitor.prototype.start = function ()
         }
 
         var self = this;
-        var onFinished = function (command) { self.finishedHandler(command); };
-        var onOutput = function (output) { self.outputHandler(output); };
-
+        var onFinished = function(x) { self.finishedHandler(x); }
         this.startWatchdogTimer();
         this.systemCommand = widget.system(this.commandLine, onFinished);
-        this.systemCommand.onreadoutput = onOutput;
     }
 }
 
@@ -155,9 +152,8 @@ CommandMonitor.prototype.processLines = function (lines)
 
 CommandMonitor.prototype.finishedHandler = function (command)
 {
-    // alert("finished");
     this.stopWatchdogTimer();
-    this.processLines(command.outputString);
+    this.processResult(command.status, command.outputString);
     delete this.systemCommand;
     this.startAfterInterval();
 }
@@ -172,21 +168,33 @@ CommandMonitor.prototype.finishedHandler = function (command)
 //
 
 function PingMonitor (remote, delay, connectedCallback, disconnectedCallback, latencyCallback) {
-    this.commandLine = "/sbin/ping -i" + delay + " " + remote + " 2>&1"; // FIXME this redirect shouldn't be necessary (for some reason, the "Request timeout" messages don't come through 'till reconnection.
+    this.commandLine = "/sbin/ping -c1 -W" + delay + " " + remote;
     this.connstat = null;
     this.connectedCallback = connectedCallback;
     this.disconnectedCallback = disconnectedCallback;
     this.latencyCallback = latencyCallback;
+    this.restartAfter=delay
 }
 
 PingMonitor.prototype = new CommandMonitor();
 
-PingMonitor.prototype.processLine = function (line) {
-    // Two possible lines:
-    //  64 bytes from 72.14.204.103: icmp_seq=0 ttl=52 time=85.069 ms
-    //  Request timeout for icmp_seq 0
-    var match;
-    if ((match = line.match(/time=/)) != null) { // good response
+PingMonitor.prototype.processResult = function (status, output) {
+    if (status) {
+        if (this.connstat == true || this.connstat == null) {
+            this.connstat = false;
+            this.disconnectedCallback();
+        }
+    } else {
+        if (this.connstat == false || this.connstat == null) {
+            this.connstat = true;
+            this.connectedCallback();
+        }
+        var match = output.match(/[0-9]{1,4}\.[0-9]{2,5}\//)
+        m = match[0];
+        m = m.replace(/\//, " ms");
+        this.latencyCallback(m);
+    }
+    /*if ((match = line.match(/time=/)) != null) { // good response
         if (this.connstat == false || this.connstat == null) {
             this.connstat = true;
             this.connectedCallback();
@@ -198,5 +206,5 @@ PingMonitor.prototype.processLine = function (line) {
             this.connstat = false;
             this.disconnectedCallback();
         }
-    }
+    }*/
 }
